@@ -1,0 +1,30 @@
+{
+  "name": "yt-downloader",
+  "version": "1.0.0",
+  "description": "YouTube Downloader using Electron and yt-dlp",
+  "main": "main.js",
+  "scripts": {
+    "start": "electron .",
+    "pack": "electron-builder --dir",
+    "dist": "electron-builder"
+  },
+  "build": {
+    "appId": "com.mediaeasier.ytdownloader",
+    "mac": {
+      "target": "dmg"
+    },
+    "extraResources": [
+      "yt-dlp_macos",
+      "ffmpeg"
+    ]
+  },
+  "author": "mediaeasier.com",
+  "license": "ISC",
+  "dependencies": {
+    "ffmpeg-static": "^5.3.0"
+  },
+  "devDependencies": {
+    "electron": "^40.6.1",
+    "electron-builder": "^26.8.1"
+  }
+}
