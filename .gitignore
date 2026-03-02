@@ -3,3 +3,5 @@ dist/
 .DS_Store
 *.dmg
 *.zip
+ffmpeg
+yt-dlp_macos
