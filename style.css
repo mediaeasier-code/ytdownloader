@@ -262,8 +262,8 @@ input:focus {
   align-items: center;
   gap: 10px;
   position: absolute;
-  top: 40px;
-  /* Just below draggable area */
+  top: 0;
+  /* Start off-screen */
   left: 0;
   right: 0;
   z-index: 90;
@@ -273,7 +273,7 @@ input:focus {
 }
 
 .update-banner.visible {
-  transform: translateY(0);
+  transform: translateY(40px);
 }
 
 .update-banner.ready {
