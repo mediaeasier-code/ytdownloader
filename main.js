@@ -101,7 +101,6 @@ ipcMain.on('download-video', (event, url) => {
     url,
     '-f', 'bestvideo+bestaudio/best',
     '--concurrent-fragments', '10', // Increase download speed via concurrent connections
-    '--limit-rate', '0', // No download speed limit
     '--hls-prefer-native', // Use native HLS downloader if available
     '--merge-output-format', 'mkv',
     '--recode-video', 'mp4',
