@@ -48,6 +48,11 @@ autoUpdater.on('update-downloaded', (info) => {
   if (mainWindow) mainWindow.webContents.send('update-downloaded', safeInfo);
 });
 
+autoUpdater.on('error', (err) => {
+  const safeError = err ? err.message || err.toString() : 'Unknown AutoUpdater Error';
+  if (mainWindow) mainWindow.webContents.send('update-error', safeError);
+});
+
 app.whenReady().then(() => {
   createWindow();
   autoUpdater.checkForUpdatesAndNotify();

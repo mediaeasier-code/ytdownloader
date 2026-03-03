@@ -35,6 +35,12 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     });
 
+    window.electronAPI.onUpdateError((errorText) => {
+        updateBanner.classList.add('visible');
+        updateBanner.style.background = 'var(--error-color)';
+        updateBanner.innerHTML = `Update Error: ${errorText}`;
+    });
+
     downloadBtn.addEventListener('click', () => {
         const url = urlInput.value.trim();
         if (!url) {
