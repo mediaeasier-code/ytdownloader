@@ -1,7 +1,9 @@
-const { app, BrowserWindow, ipcMain, dialog } = require('electron');
+const { app, BrowserWindow, ipcMain, dialog, shell } = require('electron');
 const path = require('path');
 const { spawn } = require('child_process');
 const fs = require('fs');
+
+app.setName('YT Downloader');
 
 function createWindow() {
   const win = new BrowserWindow({
@@ -37,16 +39,41 @@ app.on('window-all-closed', () => {
   }
 });
 
+// IPC Handler for update checking
+ipcMain.handle('check-update', async () => {
+  try {
+    const response = await fetch('https://api.github.com/repos/mediaeasier-code/ytdownloader/releases/latest');
+    if (!response.ok) return null;
+    const data = await response.json();
+    const latestVersion = data.tag_name ? data.tag_name.replace(/^v/, '') : null;
+    const currentVersion = app.getVersion();
+
+    // basic string compare for versions, or if latest available
+    if (latestVersion && latestVersion !== currentVersion) {
+      return { updateAvailable: true, url: data.html_url, version: latestVersion };
+    }
+    return { updateAvailable: false };
+  } catch (error) {
+    console.error('Failed to check for updates:', error);
+    return null;
+  }
+});
+
+// IPC handler to open external URLs
+ipcMain.on('open-external', (event, url) => {
+  shell.openExternal(url);
+});
+
 // IPC Handler for downloading
 ipcMain.on('download-video', (event, url) => {
   const desktopPath = path.join(app.getPath('home'), 'Desktop');
-  
+
   // Decide the path for yt-dlp and ffmpeg
-  const ytdlpPath = app.isPackaged 
+  const ytdlpPath = app.isPackaged
     ? path.join(process.resourcesPath, 'yt-dlp_macos')
     : path.join(__dirname, 'yt-dlp_macos');
-    
-  const ffmpegPath = app.isPackaged 
+
+  const ffmpegPath = app.isPackaged
     ? path.join(process.resourcesPath, 'ffmpeg')
     : path.join(__dirname, 'ffmpeg');
 
@@ -61,20 +88,33 @@ ipcMain.on('download-video', (event, url) => {
   const outputTemplate = path.join(desktopPath, '%(title)s.%(ext)s');
   const args = [
     url,
-    '-f', 'bestvideo[vcodec^=avc]+bestaudio[ext=m4a]/bestvideo[ext=mp4]+bestaudio[ext=m4a]/best',
-    '--merge-output-format', 'mp4',
+    '-f', 'bestvideo+bestaudio/best',
+    '--merge-output-format', 'mkv',
+    '--recode-video', 'mp4',
+    // Hardware H.264 encode for Premiere, forcing SDR colorspace so 10-bit HDR 4K doesn't crash ffmpeg
+    '--postprocessor-args', 'VideoConvertor:-c:v h264_videotoolbox -allow_sw 1 -b:v 30M -vf format=yuv420p -color_trc bt709 -color_primaries bt709 -colorspace bt709',
+    '--embed-metadata', // Embedded YouTube title replaces ffmpeg's default "electron" process handler name in Premiere!
     '--ffmpeg-location', ffmpegPath,
+    '--force-overwrites',
     '-o', outputTemplate,
     '--newline' // Ensure newlines to parse progress easily
   ];
 
   const child = spawn(ytdlpPath, args);
 
+  let isConverting = false;
+
   child.stdout.on('data', (data) => {
-    const output = data.toString();
+    let output = data.toString();
+    
+    if (output.includes('[VideoConvertor]')) {
+      isConverting = true;
+      output = output.replace(/\[VideoConvertor\]/g, '[yt downloader]');
+    }
+
     console.log(output);
     event.reply('download-log', `[stdout] ${output}`);
-    
+
     // Parse progress if possible
     // Example: [download]  12.3% of ~ 15.00MiB at  1.23MiB/s ETA 00:10
     if (output.includes('[download]')) {
@@ -82,6 +122,10 @@ ipcMain.on('download-video', (event, url) => {
       if (match && match[1]) {
         event.reply('download-progress', { percent: parseFloat(match[1]) });
       }
+    }
+    
+    if (isConverting && output.includes('Converting video')) {
+        event.reply('download-progress', { percent: 100, isConverting: true });
     }
   });
 
@@ -93,12 +137,12 @@ ipcMain.on('download-video', (event, url) => {
 
   child.on('close', (code) => {
     if (code === 0) {
-      event.reply('download-complete', 'Download finished successfully!');
+      event.reply('download-complete', { msg: isConverting ? 'Converted and ready for Premiere Pro!' : 'Downloaded successfully!', wasConverted: isConverting });
     } else {
       event.reply('download-error', `Process exited with code ${code}`);
     }
   });
-  
+
   child.on('error', (err) => {
     event.reply('download-error', `Failed to start subprocess: ${err.message}`);
   });
