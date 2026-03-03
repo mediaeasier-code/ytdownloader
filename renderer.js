@@ -25,13 +25,13 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     window.electronAPI.onUpdateDownloaded((info) => {
-        updateBanner.innerHTML = `Update v${info.version} ready! Click to Restart & Install`;
+        updateBanner.innerHTML = `Update v${info.version} ready! Click to Download manually`;
         updateBanner.style.cursor = 'pointer';
         updateBanner.classList.add('ready'); // styling hook if wanted
         
         // Add click listener only when ready
         updateBanner.addEventListener('click', () => {
-            window.electronAPI.quitAndInstall();
+            window.electronAPI.openExternalUrl('https://github.com/mediaeasier-code/ytdownloader/releases/latest');
         });
     });
 

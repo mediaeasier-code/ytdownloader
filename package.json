@@ -1,7 +1,7 @@
 {
   "name": "yt-downloader",
   "productName": "YT Downloader",
-  "version": "1.0.6",
+  "version": "1.0.7",
   "description": "YouTube Downloader using Electron and yt-dlp",
   "main": "main.js",
   "scripts": {
