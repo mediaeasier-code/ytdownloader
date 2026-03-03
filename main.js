@@ -2,8 +2,11 @@ const { app, BrowserWindow, ipcMain, dialog, shell } = require('electron');
 const path = require('path');
 const { spawn } = require('child_process');
 const fs = require('fs');
+const { autoUpdater } = require('electron-updater');
 
 app.setName('YT Downloader');
+
+let mainWindow;
 
 function createWindow() {
   const win = new BrowserWindow({
@@ -20,11 +23,29 @@ function createWindow() {
     visualEffectState: 'active'
   });
 
+  mainWindow = win;
   win.loadFile('index.html');
 }
 
+// Auto Updater Setup
+autoUpdater.autoDownload = true;
+autoUpdater.autoInstallOnAppQuit = true;
+
+autoUpdater.on('update-available', (info) => {
+  if (mainWindow) mainWindow.webContents.send('update-available', info);
+});
+
+autoUpdater.on('download-progress', (progressObj) => {
+  if (mainWindow) mainWindow.webContents.send('update-progress', progressObj);
+});
+
+autoUpdater.on('update-downloaded', (info) => {
+  if (mainWindow) mainWindow.webContents.send('update-downloaded', info);
+});
+
 app.whenReady().then(() => {
   createWindow();
+  autoUpdater.checkForUpdatesAndNotify();
 
   app.on('activate', () => {
     if (BrowserWindow.getAllWindows().length === 0) {
@@ -39,24 +60,9 @@ app.on('window-all-closed', () => {
   }
 });
 
-// IPC Handler for update checking
-ipcMain.handle('check-update', async () => {
-  try {
-    const response = await fetch('https://api.github.com/repos/mediaeasier-code/ytdownloader/releases/latest');
-    if (!response.ok) return null;
-    const data = await response.json();
-    const latestVersion = data.tag_name ? data.tag_name.replace(/^v/, '') : null;
-    const currentVersion = app.getVersion();
-
-    // basic string compare for versions, or if latest available
-    if (latestVersion && latestVersion !== currentVersion) {
-      return { updateAvailable: true, url: data.html_url, version: latestVersion };
-    }
-    return { updateAvailable: false };
-  } catch (error) {
-    console.error('Failed to check for updates:', error);
-    return null;
-  }
+// IPC handler to install downloaded update
+ipcMain.on('quit-and-install', () => {
+  autoUpdater.quitAndInstall();
 });
 
 // IPC handler to open external URLs

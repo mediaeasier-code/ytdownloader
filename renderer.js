@@ -10,19 +10,28 @@ document.addEventListener('DOMContentLoaded', () => {
 
     let releaseUrl = '';
 
-    // Check for updates on load
-    window.electronAPI.checkUpdate().then((updateInfo) => {
-        if (updateInfo && updateInfo.updateAvailable) {
-            updateVersion.innerText = updateInfo.version;
-            releaseUrl = updateInfo.url;
-            updateBanner.classList.add('visible');
+    // Auto-update events
+    window.electronAPI.onUpdateAvailable((info) => {
+        updateBanner.classList.add('visible');
+        updateBanner.innerHTML = `Downloading update v${info.version}... <span id="updateProgressText">0%</span>`;
+    });
+
+    window.electronAPI.onUpdateProgress((progressObj) => {
+        const updateProgressText = document.getElementById('updateProgressText');
+        if (updateProgressText) {
+            updateProgressText.innerText = `${Math.floor(progressObj.percent)}%`;
         }
     });
 
-    updateBanner.addEventListener('click', () => {
-        if (releaseUrl) {
-            window.electronAPI.openExternalUrl(releaseUrl);
-        }
+    window.electronAPI.onUpdateDownloaded((info) => {
+        updateBanner.innerHTML = `Update v${info.version} ready! Click to Restart & Install`;
+        updateBanner.style.cursor = 'pointer';
+        updateBanner.classList.add('ready'); // styling hook if wanted
+        
+        // Add click listener only when ready
+        updateBanner.addEventListener('click', () => {
+            window.electronAPI.quitAndInstall();
+        });
     });
 
     downloadBtn.addEventListener('click', () => {
