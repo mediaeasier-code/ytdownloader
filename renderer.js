@@ -13,7 +13,8 @@ document.addEventListener('DOMContentLoaded', () => {
     // Auto-update events
     window.electronAPI.onUpdateAvailable((info) => {
         updateBanner.classList.add('visible');
-        updateBanner.innerHTML = `Downloading update v${info.version}... <span id="updateProgressText">0%</span>`;
+        const vText = info && info.version ? info.version : "Unknown";
+        updateBanner.innerHTML = `Downloading update v${vText}... <span id="updateProgressText">0%</span>`;
     });
 
     window.electronAPI.onUpdateProgress((progressObj) => {

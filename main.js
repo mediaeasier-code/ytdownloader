@@ -32,7 +32,11 @@ autoUpdater.autoDownload = true;
 autoUpdater.autoInstallOnAppQuit = true;
 
 autoUpdater.on('update-available', (info) => {
-  if (mainWindow) mainWindow.webContents.send('update-available', info);
+  // Explicitly avoid same-version trigger loops and serialize safely for IPC
+  if (info && info.version === app.getVersion()) return;
+  
+  const safeInfo = { version: info ? info.version : 'Unknown' };
+  if (mainWindow) mainWindow.webContents.send('update-available', safeInfo);
 });
 
 autoUpdater.on('download-progress', (progressObj) => {
@@ -40,7 +44,8 @@ autoUpdater.on('download-progress', (progressObj) => {
 });
 
 autoUpdater.on('update-downloaded', (info) => {
-  if (mainWindow) mainWindow.webContents.send('update-downloaded', info);
+  const safeInfo = { version: info ? info.version : 'Unknown' };
+  if (mainWindow) mainWindow.webContents.send('update-downloaded', safeInfo);
 });
 
 app.whenReady().then(() => {
