@@ -100,6 +100,9 @@ ipcMain.on('download-video', (event, url) => {
   const args = [
     url,
     '-f', 'bestvideo+bestaudio/best',
+    '--concurrent-fragments', '10', // Increase download speed via concurrent connections
+    '--limit-rate', '0', // No download speed limit
+    '--hls-prefer-native', // Use native HLS downloader if available
     '--merge-output-format', 'mkv',
     '--recode-video', 'mp4',
     // Hardware H.264 encode for Premiere, forcing SDR colorspace so 10-bit HDR 4K doesn't crash ffmpeg
